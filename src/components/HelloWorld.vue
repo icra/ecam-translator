@@ -22,7 +22,12 @@
         >
           <td>{{ item }}</td>
           <td>{{ en[item] }}</td>
-          <td v-for="lang in langs_selected" :key="lang"> {{ $data[lang][item] }} </td>
+          <td v-for="lang in langs_selected" :key="lang">
+            <v-text-field
+                :placeholder="$data[lang][item]"
+                outlined
+            ></v-text-field>
+          </td>
         </tr>
         </tbody>
       </template>
@@ -70,6 +75,7 @@
         ></v-checkbox>
       </v-col>
     </v-row>
+
   </v-container>
 
 </template>
@@ -89,13 +95,29 @@
       langs_selected: [],
     }),
 
-    created: function() {
-      this.read_language_file('ar')
-      this.read_language_file('de')
-      this.read_language_file('en')
-      this.read_language_file('es')
-      this.read_language_file('fr')
-      this.read_language_file('th')
+    created: async function() {
+      //let ar = (await this.read_language_file('ar')).data
+      //console.log(ar)
+      //this.read_language_file('de')
+      //this.read_language_file('en')
+      //this.read_language_file('es')
+      //this.read_language_file('fr')
+      //this.read_language_file('th')
+      let [ar, de, en, es, fr, th] = await Promise.all([
+          this.read_language_file('ar'),
+          this.read_language_file('de'),
+          this.read_language_file('en'),
+          this.read_language_file('es'),
+          this.read_language_file('fr'),
+          this.read_language_file('th')
+      ])
+      this.ar = ar.data
+      this.de = de.data
+      this.en = en.data
+      this.es = es.data
+      this.delete_tags_not_in(this.es, this.en)
+      this.fr = fr.data
+      this.th = th.data
 
     },
 
@@ -103,22 +125,30 @@
       read_language_file(lan) {
         //Return content of /languages/lan.json
         let url = '/languages/'+lan+'.json'
-        axios.get(url)
-            .then(response => (this[lan] = response.data))
+        return axios.get(url)
       },
       tags_not_in(lan1, lan2){
-        let _this = this
         //Return the tags from lan1 not included in lan2
-        let tags1 = Object.keys(_this[lan1])
-        let tags2 = Object.keys(_this[lan2])
+        let tags1 = Object.keys(lan1)
+        let tags2 = Object.keys(lan2)
 
         let difference = tags1.filter(x => !tags2.includes(x));
         return difference
       },
+      delete_tags_not_in(lan1, lan2){
+        //Delete tags from lan1 not included in lan2
+        let tags_to_delete = this.tags_not_in(lan1, lan2)
+        tags_to_delete.forEach(tag => {
+          delete lan1[tag]
+        })
+      },
       missing_tags(){
+        let _this = this
         let missing_tags = new Set()
+        let langEn = this.en
         this.langs_selected.forEach(lang => {
-          let lang_missing_tags = this.tags_not_in('en', lang)
+          let current_lang = _this[lang]
+          let lang_missing_tags = this.tags_not_in(langEn, current_lang)
           lang_missing_tags.forEach(missing_tags.add, missing_tags)
         })
 
