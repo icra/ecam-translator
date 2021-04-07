@@ -81,12 +81,33 @@
           :items="data_to_translate"
           :items-per-page="20"
           class="elevation-1"
+          item-key="id"
       >
         <!--<template v-slot:top>
           <v-btn @click="translate">Translate</v-btn>
+        </template>
+        <template v-for="lang in langs_selected" v-slot:item[lang]="{ props }">
+          <v-edit-dialog
+              v-if="props.item[lang] === ''"
+              :return-value.sync="props.item[lang]"
+              @open="open"
+              @close="close"
+          >
+            {{ props.item[lang] }}
+            <template v-slot:input>
+              <v-text-field
+                v-model="props.item[lang]"
+                label="Edit"
+                single-line
+              ></v-text-field>
+            </template>
+          </v-edit-dialog>
         </template>-->
-        <template v-for="lang in langs_selected" v-slot:$data[lang]="props">
-          <v-text-field v-model="props.$data[lang]"></v-text-field>
+        <template v-slot:item.en="{ item }">
+          <v-text-field v-model="item.en"></v-text-field>
+        </template>
+        <template v-for="lang in langs_selected" v-slot:item[lang]="{ item }">
+          <v-text-field v-if="item[lang] === ''" v-model="item[lang]"></v-text-field>
         </template>
       </v-data-table>
     </template>
@@ -164,19 +185,6 @@
             return "Thai"
         }
       },
-      translate() {
-        /*const items = [...this.]
-
-        // deep copy is the solution
-        // const items = JSON.parse(JSON.stringify(this.customer.items))
-
-        items.map(item => {
-          item.qty2 = ''
-          return item
-        })
-        this.items = items*/
-      }
-
     },
     computed: {
       headers () {
@@ -206,7 +214,10 @@
             en: this.en[tag],
           };
           this.langs_selected.forEach(lang_key => {
-            obj[lang_key] = this.$data[lang_key][tag];
+            if(this.$data[lang_key].hasOwnProperty(tag))
+              obj[lang_key] = this.$data[lang_key][tag];
+            else
+              obj[lang_key] = '';
           });
           data_for_table.push(obj);
         });
