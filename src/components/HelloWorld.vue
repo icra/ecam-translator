@@ -45,17 +45,33 @@
 
     <!-- TABLE WITH TAGS TO TRANSLATE -->
     <template>
-      <v-data-table
-          dense
-          :headers="headers"
-          :items="data_to_translate"
-          :items-per-page="10"
-          class="elevation-10 dataTable"
-      >
-        <template v-for="lang in langs_selected" v-slot:[`item.${lang}`]="{ item }">
-          <v-text-field v-model="item[lang]"></v-text-field>
-        </template>
-      </v-data-table>
+      <v-card>
+        <v-card-title>
+          <v-text-field
+              v-model="search"
+              append-icon="mdi-magnify"
+              label="Search"
+              hide-details
+          ></v-text-field>
+        </v-card-title>
+
+        <v-data-table
+            dense
+            :headers="headers"
+            :items="data_to_translate"
+            :items-per-page="10"
+            class="elevation-10 dataTable"
+            :search="search"
+        >
+          <template v-for="lang in langs_selected" v-slot:[`item.${lang}`]="{ item }">
+            <v-textarea
+                rows="1"
+                v-model="item[lang]">
+            </v-textarea>
+          </template>
+        </v-data-table>
+      </v-card>
+
     </template>
   </v-container>
 
@@ -74,6 +90,7 @@
       fr: {},
       th: {},
       langs_selected: [],
+      search: '',
     }),
 
     created: async function() {
