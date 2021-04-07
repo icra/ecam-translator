@@ -85,29 +85,10 @@
       >
         <!--<template v-slot:top>
           <v-btn @click="translate">Translate</v-btn>
-        </template>
-        <template v-for="lang in langs_selected" v-slot:item[lang]="{ props }">
-          <v-edit-dialog
-              v-if="props.item[lang] === ''"
-              :return-value.sync="props.item[lang]"
-              @open="open"
-              @close="close"
-          >
-            {{ props.item[lang] }}
-            <template v-slot:input>
-              <v-text-field
-                v-model="props.item[lang]"
-                label="Edit"
-                single-line
-              ></v-text-field>
-            </template>
-          </v-edit-dialog>
         </template>-->
-        <template v-slot:item.en="{ item }">
-          <v-text-field v-model="item.en"></v-text-field>
-        </template>
-        <template v-for="lang in langs_selected" v-slot:item[lang]="{ item }">
-          <v-text-field v-if="item[lang] === ''" v-model="item[lang]"></v-text-field>
+
+        <template v-for="lang in langs_selected" v-slot:[`item.${lang}`]="{ item }">
+          <v-text-field v-model="item[lang]"></v-text-field>
         </template>
       </v-data-table>
     </template>
@@ -130,39 +111,56 @@
       langs_selected: [],
     }),
 
-    created: function() {
-      this.read_language_file('ar')
-      this.read_language_file('de')
-      this.read_language_file('en')
-      this.read_language_file('es')
-      this.read_language_file('fr')
-      this.read_language_file('th')
-
+    created: async function() {
+      let [ar, de, en, es, fr, th] = await Promise.all([
+        this.read_language_file('ar'),
+        this.read_language_file('de'),
+        this.read_language_file('en'),
+        this.read_language_file('es'),
+        this.read_language_file('fr'),
+        this.read_language_file('th')
+      ])
+      this.ar = ar.data
+      this.de = de.data
+      this.en = en.data
+      this.es = es.data
+      this.fr = fr.data
+      this.th = th.data
+      this.delete_tags_not_in('ar', 'en')
+      this.delete_tags_not_in('de', 'en')
+      this.delete_tags_not_in('es', 'en')
+      this.delete_tags_not_in('fr', 'en')
+      this.delete_tags_not_in('th', 'en')
     },
 
     methods: {
       read_language_file(lan) {
         //Return content of /languages/lan.json
         let url = '/languages/'+lan+'.json'
-        axios.get(url)
-            .then(response => (this[lan] = response.data))
+        return axios.get(url)
       },
       tags_not_in(lan1, lan2){
-        let _this = this
-        //Return the tags from lan1 not included in lan2
-        let tags1 = Object.keys(_this[lan1])
-        let tags2 = Object.keys(_this[lan2])
-
+        //Return the tags from data.lan1 not included in data.lan2
+        let tags1 = Object.keys(this[lan1])
+        let tags2 = Object.keys(this[lan2])
         let difference = tags1.filter(x => !tags2.includes(x));
         return difference
       },
+      delete_tags_not_in(lan1, lan2){
+        //Delete tags from data.lan1 not included in data.lan2
+        let _this = this
+        let tags_to_delete = this.tags_not_in(lan1, lan2)
+        tags_to_delete.forEach(tag => {
+          delete _this[lan1][tag]
+        })
+      },
       missing_tags(){
+        //return all the tags missing from this.langs_selected compared to this.en
         let missing_tags = new Set()
         this.langs_selected.forEach(lang => {
           let lang_missing_tags = this.tags_not_in('en', lang)
           lang_missing_tags.forEach(missing_tags.add, missing_tags)
         })
-
         return [...missing_tags]
       },
       filterOnlyCapsText (value, search, item) {
