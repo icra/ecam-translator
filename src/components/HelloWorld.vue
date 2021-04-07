@@ -1,5 +1,6 @@
 <template>
   <v-container>
+    <!--
     <v-simple-table dense>
       <template v-slot:default>
         <thead>
@@ -27,6 +28,7 @@
         </tbody>
       </template>
     </v-simple-table>
+    -->
 
     <!-- CHECKBOX TO SELECT LANGUAGES -->
     <p>{{ langs_selected }}</p>
@@ -70,6 +72,24 @@
         ></v-checkbox>
       </v-col>
     </v-row>
+
+    <!-- TABLE WITH TAGS TO TRANSLATE -->
+    <template>
+      <v-data-table
+          dense
+          :headers="headers"
+          :items="data_to_translate"
+          :items-per-page="20"
+          class="elevation-1"
+      >
+        <!--<template v-slot:top>
+          <v-btn @click="translate">Translate</v-btn>
+        </template>-->
+        <template v-for="lang in langs_selected" v-slot:$data[lang]="props">
+          <v-text-field v-model="props.$data[lang]"></v-text-field>
+        </template>
+      </v-data-table>
+    </template>
   </v-container>
 
 </template>
@@ -143,34 +163,56 @@
           case "th":
             return "Thai"
         }
-      }
-    },
+      },
+      translate() {
+        /*const items = [...this.]
 
+        // deep copy is the solution
+        // const items = JSON.parse(JSON.stringify(this.customer.items))
+
+        items.map(item => {
+          item.qty2 = ''
+          return item
+        })
+        this.items = items*/
+      }
+
+    },
     computed: {
       headers () {
-        // fer que consulti els langs_selected per afegir el header de l'idioma seleccionat.
-        return [
+        let header = [
           {
-            text: 'ENGLISH',
+            text: 'TAG',
             align: 'start',
             sortable: false,
-            value: 'en',
+            value: 'tag',
           },
-          {
-            text: 'Calories',
-            value: 'calories',
-            filter: value => {
-              if (!this.calories) return true
+          { text: 'ENGLISH', value: 'en'}
+        ];
 
-              return value < parseInt(this.calories)
-            },
-          },
-          { text: 'Fat (g)', value: 'fat' },
-          { text: 'Carbs (g)', value: 'carbs' },
-          { text: 'Protein (g)', value: 'protein' },
-          { text: 'Iron (%)', value: 'iron' },
-        ]
+        this.langs_selected.forEach(lang_key => {
+          let lang = this.key_to_language(lang_key).toUpperCase();
+          let obj = { text: lang, value: lang_key};
+          header.push(obj);
+        });
+
+        return header
       },
+      data_to_translate() {
+        let data_for_table = [];
+        this.missing_tags().forEach(tag => {
+          let obj = {
+            tag: tag,
+            en: this.en[tag],
+          };
+          this.langs_selected.forEach(lang_key => {
+            obj[lang_key] = this.$data[lang_key][tag];
+          });
+          data_for_table.push(obj);
+        });
+
+        return data_for_table;
+      }
     },
   }
 </script>
