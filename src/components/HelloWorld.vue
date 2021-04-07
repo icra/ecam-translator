@@ -1,37 +1,7 @@
 <template>
   <v-container>
-    <!--
-    <v-simple-table dense>
-      <template v-slot:default>
-        <thead>
-        <tr>
-          <th class="text-left">
-            Tag
-          </th>
-          <th class="text-left">
-            English
-          </th>
-          <th class="text-left" v-for="lang in langs_selected" :key="lang">
-            {{ key_to_language(lang) }}
-          </th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr
-            v-for="item in missing_tags()"
-            :key="item"
-        >
-          <td>{{ item }}</td>
-          <td>{{ en[item] }}</td>
-          <td v-for="lang in langs_selected" :key="lang"> {{ $data[lang][item] }} </td>
-        </tr>
-        </tbody>
-      </template>
-    </v-simple-table>
-    -->
 
     <!-- CHECKBOX TO SELECT LANGUAGES -->
-    <p>{{ langs_selected }}</p>
     <v-row align-content="center">
       <v-col cols="auto" align-self="center">
         <strong>Select the language(s) you want to translate:</strong>
@@ -79,14 +49,9 @@
           dense
           :headers="headers"
           :items="data_to_translate"
-          :items-per-page="20"
-          class="elevation-1"
-          item-key="id"
+          :items-per-page="10"
+          class="elevation-10 dataTable"
       >
-        <!--<template v-slot:top>
-          <v-btn @click="translate">Translate</v-btn>
-        </template>-->
-
         <template v-for="lang in langs_selected" v-slot:[`item.${lang}`]="{ item }">
           <v-text-field v-model="item[lang]"></v-text-field>
         </template>
@@ -192,8 +157,9 @@
             align: 'start',
             sortable: false,
             value: 'tag',
+            width: '25%'
           },
-          { text: 'ENGLISH', value: 'en'}
+          { text: 'ENGLISH', value: 'en', width: '25%'}
         ];
 
         this.langs_selected.forEach(lang_key => {
@@ -225,3 +191,18 @@
     },
   }
 </script>
+
+<style>
+  thead.v-data-table-header  {
+    background-color: #2b6488 !important;
+  }
+
+  th.text-start {
+    color: white !important;
+  }
+
+  .v-data-footer {
+    background-color: lightgray;
+  }
+
+</style>
