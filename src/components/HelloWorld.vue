@@ -58,10 +58,11 @@
         <v-data-table
             dense
             :headers="headers"
-            :items="data_to_translate"
+            :items="data_for_table"
             :items-per-page="10"
             class="elevation-10 dataTable"
             :search="search"
+
         >
           <template v-for="lang in langs_selected" v-slot:[`item.${lang}`]="{ item }">
             <v-textarea
@@ -73,6 +74,19 @@
       </v-card>
 
     </template>
+    <v-btn
+        color="#2b6488"
+        class="mt-10 white--text"
+        @click="download_translations"
+    >
+      Download translations
+      <v-icon
+          right
+          dark
+      >
+        mdi-cloud-download
+      </v-icon>
+    </v-btn>
   </v-container>
 
 </template>
@@ -89,6 +103,7 @@
       es: {},
       fr: {},
       th: {},
+      data_for_table: [],
       langs_selected: [],
       search: '',
     }),
@@ -113,6 +128,7 @@
       this.delete_tags_not_in('es', 'en')
       this.delete_tags_not_in('fr', 'en')
       this.delete_tags_not_in('th', 'en')
+      this.data_for_table = this.data_to_translate()
     },
 
     methods: {
@@ -136,10 +152,10 @@
           delete _this[lan1][tag]
         })
       },
-      missing_tags(){
+      missing_tags(langs){
         //return all the tags missing from this.langs_selected compared to this.en
         let missing_tags = new Set()
-        this.langs_selected.forEach(lang => {
+        langs.forEach(lang => {
           let lang_missing_tags = this.tags_not_in('en', lang)
           lang_missing_tags.forEach(missing_tags.add, missing_tags)
         })
@@ -165,20 +181,67 @@
             return "Thai"
         }
       },
+      download_translations () {
+        console.log(this.data_for_table)
+        this.langs_selected.forEach(lang => {
+          let jsonObj = this[lang]
+          let lan_translated = JSON.parse(JSON.stringify(jsonObj));
+          this.data_for_table.forEach(translation => {
+            let tag = translation['tag']
+            let trans = translation[lang]
+            if(trans != '') lan_translated[tag] = translation[lang]
+          })
+          this.downloadObjectAsJson(lan_translated, lang)
+        })
+      },
+      downloadObjectAsJson(exportObj, exportName){
+        let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+        let downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href",     dataStr);
+        downloadAnchorNode.setAttribute("download", exportName + ".json");
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+      },
+      data_to_translate() {
+        let data_for_table = [];
+
+        this.missing_tags(['ar', 'de', 'es', 'fr', 'th']).forEach(tag => {
+          let _this = this
+          let current_languages = ['ar', 'de', 'en', 'es', 'fr', 'th']
+          let obj = {
+            tag: tag,
+          };
+          current_languages.forEach(lang_key => {
+            if(_this[lang_key].hasOwnProperty(tag))
+              obj[lang_key] = _this[lang_key][tag];
+            else
+              obj[lang_key] = '';
+          })
+          data_for_table.push(obj);
+        });
+        return data_for_table;
+      }
     },
     computed: {
       headers () {
-        let header = [
-          {
-            text: 'TAG',
-            align: 'start',
-            sortable: false,
-            value: 'tag',
-            width: '25%'
-          },
-          { text: 'ENGLISH', value: 'en', width: '25%'}
-        ];
+        let header = [];
 
+        if(this.langs_selected.length > 0){
+          header.push(
+              {
+                text: 'TAG',
+                align: 'start',
+                sortable: false,
+                value: 'tag',
+                width: '25%'
+              },
+              {
+                text: 'ENGLISH',
+                value: 'en',
+                width: '25%'
+              })
+        }
         this.langs_selected.forEach(lang_key => {
           let lang = this.key_to_language(lang_key).toUpperCase();
           let obj = { text: lang, value: lang_key};
@@ -187,24 +250,6 @@
 
         return header
       },
-      data_to_translate() {
-        let data_for_table = [];
-        this.missing_tags().forEach(tag => {
-          let obj = {
-            tag: tag,
-            en: this.en[tag],
-          };
-          this.langs_selected.forEach(lang_key => {
-            if(this.$data[lang_key].hasOwnProperty(tag))
-              obj[lang_key] = this.$data[lang_key][tag];
-            else
-              obj[lang_key] = '';
-          });
-          data_for_table.push(obj);
-        });
-
-        return data_for_table;
-      }
     },
   }
 </script>
@@ -221,5 +266,7 @@
   .v-data-footer {
     background-color: lightgray;
   }
+
+
 
 </style>
