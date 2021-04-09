@@ -42,6 +42,18 @@
       </v-col>
     </v-row>
 
+    <v-row align-content="center">
+      <v-col cols="auto" align-self="center">
+        <strong>Show all the words:</strong>
+      </v-col>
+      <v-col cols="auto">
+        <v-checkbox
+            v-model="expanded_table"
+
+        ></v-checkbox>
+      </v-col>
+    </v-row>
+
     <!-- TABLE WITH TAGS TO TRANSLATE -->
     <template>
       <v-card>
@@ -57,7 +69,7 @@
         <v-data-table
             dense
             :headers="headers"
-            :items="data_for_table"
+            :items="data_info"
             :items-per-page="10"
             class="elevation-10 dataTable"
             :search="search"
@@ -98,23 +110,21 @@
 </template>
 <script>
   import axios from 'axios'
+  import _ from 'lodash';
 
   export default {
     name: 'HelloWorld',
 
     data: () => ({
-      ar: {},
-      de: {},
-      en: {},
-      es: {},
-      fr: {},
-      th: {},
       data_for_table: [],
       langs_selected: [],
       search: '',
+      expanded_table: true,
+      initial_missing_tags: []
     }),
 
     created: async function() {
+      //Reading files
       let [ar, de, en, es, fr, th] = await Promise.all([
         this.read_language_file('ar'),
         this.read_language_file('de'),
@@ -123,56 +133,53 @@
         this.read_language_file('fr'),
         this.read_language_file('th')
       ])
-      this.ar = ar.data
-      this.de = de.data
-      this.en = en.data
-      this.es = es.data
-      this.fr = fr.data
-      this.th = th.data
-      this.delete_tags_not_in('ar', 'en')
-      this.delete_tags_not_in('de', 'en')
-      this.delete_tags_not_in('es', 'en')
-      this.delete_tags_not_in('fr', 'en')
-      this.delete_tags_not_in('th', 'en')
-      this.data_for_table = this.data_to_translate()
+
+      //Deleting tags that aren't in english file
+      this.delete_tags_not_in(ar, en)
+      this.delete_tags_not_in(de, en)
+      this.delete_tags_not_in(es, en)
+      this.delete_tags_not_in(fr, en)
+      this.delete_tags_not_in(th, en)
+
+      this.initial_missing_tags =  this.missing_tags([ar, de, es, fr, th], en)
+
+      //Preparing data for table
+      let translation_with_lang_name = _.zip([ar, de, es, fr, th],['ar', 'de', 'es', 'fr', 'th'])
+      this.data_for_table = this.data_to_translate(translation_with_lang_name, [en, 'en'])
     },
 
     methods: {
       read_language_file(lan) {
         //Return content of /languages/lan.json
         let url = '/languages/'+lan+'.json'
-        return axios.get(url)
+        return axios.get(url).then(resp => {
+          return resp.data
+        })
       },
       tags_not_in(lan1, lan2){
-        //Return the tags from data.lan1 not included in data.lan2
-        let tags1 = Object.keys(this[lan1])
-        let tags2 = Object.keys(this[lan2])
+        //Return the tags from lan1 not included in lan2
+        let tags1 = Object.keys(lan1)
+        let tags2 = Object.keys(lan2)
         let difference = tags1.filter(x => !tags2.includes(x));
         return difference
       },
       delete_tags_not_in(lan1, lan2){
-        //Delete tags from data.lan1 not included in data.lan2
-        let _this = this
+        //Delete tags from lan1 not included in lan2
         let tags_to_delete = this.tags_not_in(lan1, lan2)
         tags_to_delete.forEach(tag => {
-          delete _this[lan1][tag]
+          delete lan1[tag]
         })
       },
-      missing_tags(langs){
-        //return all the tags missing from this.langs_selected compared to this.en
+      missing_tags(langs, master_lang){
+        //return all the tags missing in langs compared to master_lang
         let missing_tags = new Set()
         langs.forEach(lang => {
-          let lang_missing_tags = this.tags_not_in('en', lang)
+          let lang_missing_tags = this.tags_not_in(master_lang, lang)
           lang_missing_tags.forEach(missing_tags.add, missing_tags)
         })
         return [...missing_tags]
       },
-      filterOnlyCapsText (value, search, item) {
-        return value != null &&
-            search != null &&
-            typeof value === 'string' &&
-            value.toString().toLocaleUpperCase().indexOf(search) !== -1
-      },
+
       key_to_language (key) {
         switch (key) {
           case "ar":
@@ -188,12 +195,8 @@
         }
       },
       download_translations () {
-        console.log(this.data_for_table)
         this.langs_selected.forEach(lang => {
-          let jsonObj = this[lang]
-          let lan_translated = JSON.parse(JSON.stringify(jsonObj));
-          console.log(lan_translated)
-          console.log(typeof lan_translated)
+          let lan_translated = {};
           this.data_for_table.forEach(translation => {
             let tag = translation['tag']
             let trans = translation[lang]
@@ -211,18 +214,48 @@
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
       },
-      data_to_translate() {
+
+
+      data_to_translate(data_to_translate, master_lang) {
+        //data_to_translate is [[json, 'language key'],...], and master_lang is[json, 'language key']
+
         let data_for_table = [];
 
-        this.missing_tags(['ar', 'de', 'es', 'fr', 'th']).forEach(tag => {
-          let _this = this
-          let current_languages = ['ar', 'de', 'en', 'es', 'fr', 'th']
+        let to_translate = _.unzip(data_to_translate)[0]
+
+        /*
+        this.missing_tags(to_translate, master_lang[0]).forEach(tag => {
           let obj = {
             tag: tag,
+            [master_lang[1]]: master_lang[0][tag]       //Translation in master language
           };
-          current_languages.forEach(lang_key => {
-            if(_this[lang_key].hasOwnProperty(tag))
-              obj[lang_key] = _this[lang_key][tag];
+
+
+          data_to_translate.forEach(lang_translations => {
+            let translation = lang_translations[0]
+            let lang_key = lang_translations[1]
+
+            if(translation.hasOwnProperty(tag))
+              obj[lang_key] = translation[tag];
+            else
+              obj[lang_key] = '';
+          })
+          data_for_table.push(obj);
+        });*/
+
+
+        Object.keys(master_lang[0]).forEach(tag => {
+          let obj = {
+            tag: tag,
+            [master_lang[1]]: master_lang[0][tag]       //Translation in master language
+          };
+
+          data_to_translate.forEach(lang_translations => {
+            let translation = lang_translations[0]
+            let lang_key = lang_translations[1]
+
+            if(translation.hasOwnProperty(tag))
+              obj[lang_key] = translation[tag];
             else
               obj[lang_key] = '';
           })
@@ -258,6 +291,22 @@
 
         return header
       },
+      data_info () {
+        if(this.expanded_table){
+          return this.data_for_table
+        } else{
+          let filtered_table = []
+          this.initial_missing_tags.forEach(tag => {
+            filtered_table.push(
+                this.data_for_table.find(function(item) {
+                  return item.tag == tag
+                })
+            )
+          })
+
+          return filtered_table
+        }
+      }
     },
   }
 </script>
