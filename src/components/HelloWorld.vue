@@ -1,6 +1,5 @@
 <template>
   <v-container>
-
     <!-- CHECKBOX TO SELECT LANGUAGES -->
     <v-row align-content="center">
       <v-col cols="auto" align-self="center">
@@ -66,6 +65,13 @@
         >
           <template v-for="lang in langs_selected" v-slot:[`item.${lang}`]="{ item }">
             <v-textarea
+                v-if="lang !== 'ar'"
+                rows="1"
+                v-model="item[lang]">
+            </v-textarea>
+            <v-textarea
+                v-if="lang === 'ar'"
+                dir="auto"
                 rows="1"
                 v-model="item[lang]">
             </v-textarea>
@@ -76,7 +82,7 @@
     </template>
     <v-btn
         color="#2b6488"
-        class="mt-10 white--text"
+        class="my-10 white--text"
         @click="download_translations"
     >
       Download translations
@@ -186,16 +192,18 @@
         this.langs_selected.forEach(lang => {
           let jsonObj = this[lang]
           let lan_translated = JSON.parse(JSON.stringify(jsonObj));
+          console.log(lan_translated)
+          console.log(typeof lan_translated)
           this.data_for_table.forEach(translation => {
             let tag = translation['tag']
             let trans = translation[lang]
-            if(trans != '') lan_translated[tag] = translation[lang]
+            if(trans !== '') lan_translated[tag] = translation[lang]
           })
           this.downloadObjectAsJson(lan_translated, lang)
         })
       },
       downloadObjectAsJson(exportObj, exportName){
-        let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+        let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, '\t'));
         let downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href",     dataStr);
         downloadAnchorNode.setAttribute("download", exportName + ".json");
@@ -266,7 +274,5 @@
   .v-data-footer {
     background-color: lightgray;
   }
-
-
 
 </style>
