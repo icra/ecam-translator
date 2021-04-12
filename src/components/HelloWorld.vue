@@ -44,12 +44,11 @@
 
     <v-row align-content="center">
       <v-col cols="auto" align-self="center">
-        <strong>Show all the words:</strong>
+        <strong>Show only the words to translate:</strong>
       </v-col>
       <v-col cols="auto">
         <v-checkbox
-            v-model="expanded_table"
-
+            v-model="contracted_table"
         ></v-checkbox>
       </v-col>
     </v-row>
@@ -119,8 +118,8 @@
       data_for_table: [],
       langs_selected: [],
       search: '',
-      expanded_table: true,
-      initial_missing_tags: []
+      contracted_table: true,
+      initial_missing_tags: []  //Tags that need to be translated when the json files are read
     }),
 
     created: async function() {
@@ -134,13 +133,14 @@
         this.read_language_file('th')
       ])
 
-      //Deleting tags that aren't in english file
+      //Deleting tags that aren't in the english file
       this.delete_tags_not_in(ar, en)
       this.delete_tags_not_in(de, en)
       this.delete_tags_not_in(es, en)
       this.delete_tags_not_in(fr, en)
       this.delete_tags_not_in(th, en)
 
+      //Tags that need to be translated
       this.initial_missing_tags =  this.missing_tags([ar, de, es, fr, th], en)
 
       //Preparing data for table
@@ -221,29 +221,6 @@
 
         let data_for_table = [];
 
-        let to_translate = _.unzip(data_to_translate)[0]
-
-        /*
-        this.missing_tags(to_translate, master_lang[0]).forEach(tag => {
-          let obj = {
-            tag: tag,
-            [master_lang[1]]: master_lang[0][tag]       //Translation in master language
-          };
-
-
-          data_to_translate.forEach(lang_translations => {
-            let translation = lang_translations[0]
-            let lang_key = lang_translations[1]
-
-            if(translation.hasOwnProperty(tag))
-              obj[lang_key] = translation[tag];
-            else
-              obj[lang_key] = '';
-          })
-          data_for_table.push(obj);
-        });*/
-
-
         Object.keys(master_lang[0]).forEach(tag => {
           let obj = {
             tag: tag,
@@ -292,9 +269,8 @@
         return header
       },
       data_info () {
-        if(this.expanded_table){
-          return this.data_for_table
-        } else{
+        if(this.contracted_table){
+
           let filtered_table = []
           this.initial_missing_tags.forEach(tag => {
             filtered_table.push(
@@ -303,8 +279,9 @@
                 })
             )
           })
-
           return filtered_table
+        } else{
+          return this.data_for_table
         }
       }
     },
