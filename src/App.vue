@@ -23,19 +23,19 @@
     </v-app-bar>
 
     <v-main>
-      <HelloWorld/>
+      <Translator/>
     </v-main>
   </v-app>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld';
+import Translator from './components/Translator';
 
 export default {
   name: 'App',
 
   components: {
-    HelloWorld,
+    Translator,
   },
 
   data: () => ({

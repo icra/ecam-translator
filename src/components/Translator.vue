@@ -150,8 +150,8 @@
 
     methods: {
       read_language_file(lan) {
-        //Return content of /languages/lan.json
-        let url = '/languages/'+lan+'.json'
+        //Return content of https://raw.githubusercontent.com/icra/ecam/v3/v3/frontend/languages/lan.json
+        let url = 'https://raw.githubusercontent.com/icra/ecam/v3/v3/frontend/languages/'+lan+'.json'
         return axios.get(url).then(resp => {
           return resp.data
         })
