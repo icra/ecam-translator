@@ -329,8 +329,6 @@
         })
       },
       async import_translation() {
-        console.log(this.import_language_model)
-        console.log(this.chosenFile)
         let _this = this
         try {
           let json = await this.fileToJSON(this.chosenFile)
@@ -342,25 +340,26 @@
           this.error = false
 
           //Table data
-          let langsToRead = ['ar', 'de', 'en', 'es', 'fr', 'th']
-
-          _.remove(langsToRead, function(lang) {
-            return lang == _this.import_language_model
-          });
-
-          let langs = {}
-          langs[_this.import_language_model] = json
-
-          await Promise.all(langsRead).then((values) => {
-            for (let i in langsToRead){
-              let lang = values[i]
-              langs[langsToRead[i]] = lang
+          let missing_tags = []
+          this.data_for_table.forEach( item => {
+            if(json.hasOwnProperty(item.tag)){
+              item[this.import_language_model] = json[item.tag]
+            }else{
+              item[this.import_language_model] = ''
             }
-          });
 
-          this.filter_table(langs)
+            let values = Object.values(item)
+            console.log(values)
+            if (values.includes("")) {
+              missing_tags.push(item.tag)
+            }
+          })
+          console.log(missing_tags)
+          this.initial_missing_tags = missing_tags
+          console.log(this.initial_missing_tags)
 
         } catch (e) {
+          console.log('acaccacacacaca')
           this.snackbar = true
           this.text = 'Error importing translation file'
           this.color = '#AF0606'
