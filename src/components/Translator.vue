@@ -1,54 +1,69 @@
 <template>
   <v-container>
+
+    <div id="import_file" class="mt-7 mb-7">
+      <v-row class="mt-4 mr-4 ml-4">
+        <v-col >
+          <strong>Import language file from your computer (optional step):</strong>
+        </v-col>
+      </v-row>
+      <v-row class="mr-4 ml-4">
+        <v-col cols="6" md="5">
+          <v-select
+              :items="langs_to_import"
+              v-model="import_language_model"
+              label="Language of the file to import"
+              item-text="state"
+              item-value="abbr"
+          ></v-select>
+        </v-col>
+        <v-col cols="6" md="5">
+          <v-file-input
+              accept="application/JSON"
+              label="File input"
+              :disabled='import_language_model == null'
+              v-model="chosenFile"
+          ></v-file-input>
+        </v-col>
+        <v-col cols="2" class="mt-3">
+          <v-btn
+              color="#2b6488"
+              class="white--text"
+              @click="import_translation"
+              :disabled='chosenFile == null'
+          >
+            Import
+            <v-icon
+                right
+                dark
+            >
+              mdi-cloud-upload
+            </v-icon>
+          </v-btn>
+        </v-col>
+      </v-row>
+    </div>
+
+
     <!-- CHECKBOX TO SELECT LANGUAGES -->
     <v-row align-content="center">
       <v-col cols="auto" align-self="center">
         <strong>Select the language(s) you want to translate:</strong>
       </v-col>
-      <v-col cols="auto">
+      <v-col cols="auto" v-for="lang in langs_to_import">
         <v-checkbox
             v-model="langs_selected"
-            label="Arabic"
-            value="ar"
-        ></v-checkbox>
-      </v-col>
-      <v-col cols="auto">
-        <v-checkbox
-            v-model="langs_selected"
-            label="French"
-            value="fr"
-        ></v-checkbox>
-      </v-col>
-      <v-col cols="auto">
-        <v-checkbox
-            v-model="langs_selected"
-            label="German"
-            value="de"
-        ></v-checkbox>
-      </v-col>
-      <v-col cols="auto">
-        <v-checkbox
-            v-model="langs_selected"
-            label="Spanish"
-            value="es"
-        ></v-checkbox>
-      </v-col>
-      <v-col cols="auto">
-        <v-checkbox
-            v-model="langs_selected"
-            label="Thai"
-            value="th"
+            :label="lang.state"
+            :value="lang.abbr"
         ></v-checkbox>
       </v-col>
     </v-row>
 
-    <v-row align-content="center">
-      <v-col cols="auto" align-self="center">
-        <strong>Show only the words to translate:</strong>
-      </v-col>
+    <v-row align-content="center" class="no-gutters">
       <v-col cols="auto">
         <v-checkbox
             v-model="contracted_table"
+            label="Show only the words to translate"
         ></v-checkbox>
       </v-col>
     </v-row>
@@ -56,7 +71,7 @@
     <!-- TABLE WITH TAGS TO TRANSLATE -->
     <template>
       <v-card>
-        <v-card-title>
+        <v-card-title v-if="langs_selected.length > 0">
           <v-text-field
               v-model="search"
               append-icon="mdi-magnify"
@@ -104,6 +119,31 @@
         mdi-cloud-download
       </v-icon>
     </v-btn>
+
+    <v-snackbar
+        v-model="snackbar"
+        :timeout="timeout"
+        :color="color"
+    >
+      {{ text }}
+
+      <v-icon v-if="error"
+          dark
+          right
+          class="float-right"
+      >
+        mdi-alert-circle-outline
+      </v-icon>
+      <v-icon v-else
+              dark
+              right
+              class="float-right"
+      >
+        mdi-checkbox-marked-circle
+      </v-icon>
+
+    </v-snackbar>
+
   </v-container>
 
 </template>
@@ -119,7 +159,25 @@
       langs_selected: [],
       search: '',
       contracted_table: true,
-      initial_missing_tags: []  //Tags that need to be translated when the json files are read
+      initial_missing_tags: [],  //Tags that need to be translated when the json files are read
+
+      //For manually importing file
+      langs_to_import: [
+        { state: 'Arabic', abbr: 'ar' },
+        { state: 'French', abbr: 'fr' },
+        { state: 'German', abbr: 'de' },
+        { state: 'Spanish', abbr: 'es' },
+        { state: 'Thai', abbr: 'th' },
+      ],
+      import_language_model: null, //language to import
+      chosenFile: null, //file to read
+
+      //Snackbar props
+      snackbar: false,
+      text: '',
+      timeout: 2000,
+      color: 'green',
+      error: true
     }),
 
     created: async function() {
@@ -133,22 +191,42 @@
         this.read_language_file('th')
       ])
 
-      //Deleting tags that aren't in the english file
-      this.delete_tags_not_in(ar, en)
-      this.delete_tags_not_in(de, en)
-      this.delete_tags_not_in(es, en)
-      this.delete_tags_not_in(fr, en)
-      this.delete_tags_not_in(th, en)
-
-      //Tags that need to be translated
-      this.initial_missing_tags =  this.missing_tags([ar, de, es, fr, th], en)
-
-      //Preparing data for table
-      let translation_with_lang_name = _.zip([ar, de, es, fr, th],['ar', 'de', 'es', 'fr', 'th'])
-      this.data_for_table = this.data_to_translate(translation_with_lang_name, [en, 'en'])
+      let langs = {
+        'ar': ar,
+        'de': de,
+        'es': es,
+        'fr': fr,
+        'th': th,
+        'en': en
+      }
+      this.filter_table(langs)
     },
 
     methods: {
+      filter_table(langs){
+        let ar = langs['ar']
+        let de = langs['de']
+        let es = langs['es']
+        let fr = langs['fr']
+        let th = langs['th']
+        let en = langs['en']
+
+        //Deleting tags that aren't in the english file
+        this.delete_tags_not_in(ar, en)
+        this.delete_tags_not_in(de, en)
+        this.delete_tags_not_in(es, en)
+        this.delete_tags_not_in(fr, en)
+        this.delete_tags_not_in(th, en)
+
+        //Tags that need to be translated
+        this.initial_missing_tags =  this.missing_tags([ar, de, es, fr, th], en)
+
+        //Preparing data for table
+        let translation_with_lang_name = _.zip([ar, de, es, fr, th],['ar', 'de', 'es', 'fr', 'th'])
+        this.data_for_table = this.data_to_translate(translation_with_lang_name, [en, 'en'])
+
+      },
+
       read_language_file(lan) {
         //Return content of https://raw.githubusercontent.com/icra/ecam/v3/v3/frontend/languages/lan.json
         let url = 'https://raw.githubusercontent.com/icra/ecam/v3/v3/frontend/languages/'+lan+'.json'
@@ -192,6 +270,8 @@
             return "Spanish"
           case "th":
             return "Thai"
+          case "en":
+            return "English"
         }
       },
       download_translations () {
@@ -239,6 +319,54 @@
           data_for_table.push(obj);
         });
         return data_for_table;
+      },
+      async fileToJSON(file) {
+        return new Promise((resolve, reject) => {
+          const fileReader = new FileReader()
+          fileReader.onload = event => resolve(JSON.parse(event.target.result))
+          fileReader.onerror = error => reject(error)
+          fileReader.readAsText(file)
+        })
+      },
+      async import_translation() {
+        console.log(this.import_language_model)
+        console.log(this.chosenFile)
+        let _this = this
+        try {
+          let json = await this.fileToJSON(this.chosenFile)
+
+          //Snackbar
+          this.snackbar = true
+          this.text = 'Translation file imported correctly'
+          this.color = 'rgb(34,139,34)'
+          this.error = false
+
+          //Table data
+          let langsToRead = ['ar', 'de', 'en', 'es', 'fr', 'th']
+
+          _.remove(langsToRead, function(lang) {
+            return lang == _this.import_language_model
+          });
+
+          let langs = {}
+          langs[_this.import_language_model] = json
+
+          await Promise.all(langsRead).then((values) => {
+            for (let i in langsToRead){
+              let lang = values[i]
+              langs[langsToRead[i]] = lang
+            }
+          });
+
+          this.filter_table(langs)
+
+        } catch (e) {
+          this.snackbar = true
+          this.text = 'Error importing translation file'
+          this.color = '#AF0606'
+          this.error = true
+        }
+
       }
     },
     computed: {
@@ -299,6 +427,12 @@
 
   .v-data-footer {
     background-color: lightgray;
+  }
+
+  #import_file {
+    border-style: solid;
+    border-color: #2b6488;
+    border-radius: 10px;
   }
 
 </style>

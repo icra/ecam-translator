@@ -7,7 +7,7 @@
       id="navbar"
     >
       <div>
-        <a href="http://wacclim.org/ecam/index.php" target="_blank" class="d-flex align-center" title="http://wacclim.org/ecam/index.php">
+        <a href="https://ecam.icradev.cat/" target="_blank" class="d-flex align-center" title="https://ecam.icradev.cat/">
           <div>
             <b id="logo">ECAM</b>
           </div>
