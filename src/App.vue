@@ -45,6 +45,9 @@ export default {
 </script>
 
 <style>
+
+  @import '../node_modules/typeface-roboto/index.css';
+
   #navbar #logo {
     font-size: 30px;
     line-height: 9%;
