@@ -168,6 +168,8 @@
         { state: 'German', abbr: 'de' },
         { state: 'Spanish', abbr: 'es' },
         { state: 'Thai', abbr: 'th' },
+        { state: 'Polish', abbr: 'pl' },
+
       ],
       import_language_model: null, //language to import
       chosenFile: null, //file to read
@@ -182,13 +184,15 @@
 
     created: async function() {
       //Reading files
-      let [ar, de, en, es, fr, th] = await Promise.all([
+      let [ar, de, en, es, fr, th, pl] = await Promise.all([
         this.read_language_file('ar'),
         this.read_language_file('de'),
         this.read_language_file('en'),
         this.read_language_file('es'),
         this.read_language_file('fr'),
-        this.read_language_file('th')
+        this.read_language_file('th'),
+        this.read_language_file('pl')
+
       ])
 
       let langs = {
@@ -197,7 +201,8 @@
         'es': es,
         'fr': fr,
         'th': th,
-        'en': en
+        'en': en,
+        'pl': pl
       }
       this.filter_table(langs)
     },
@@ -210,6 +215,7 @@
         let fr = langs['fr']
         let th = langs['th']
         let en = langs['en']
+        let pl = langs['pl']
 
         //Deleting tags that aren't in the english file
         this.delete_tags_not_in(ar, en)
@@ -217,23 +223,28 @@
         this.delete_tags_not_in(es, en)
         this.delete_tags_not_in(fr, en)
         this.delete_tags_not_in(th, en)
+        this.delete_tags_not_in(pl, en)
+
 
         //Tags that need to be translated
-        this.initial_missing_tags =  this.missing_tags([ar, de, es, fr, th], en)
+        this.initial_missing_tags =  this.missing_tags([ar, de, es, fr, th, pl], en)
 
         //Preparing data for table
-        let translation_with_lang_name = _.zip([ar, de, es, fr, th],['ar', 'de', 'es', 'fr', 'th'])
+        let translation_with_lang_name = _.zip([ar, de, es, fr, th, pl],['ar', 'de', 'es', 'fr', 'th', 'pl'])
         this.data_for_table = this.data_to_translate(translation_with_lang_name, [en, 'en'])
 
       },
 
       read_language_file(lan) {
-        //Return content of https://raw.githubusercontent.com/icra/ecam/v3/v3/frontend/languages/lan.json
-        let url = 'https://raw.githubusercontent.com/icra/ecam/v3/v3/frontend/languages/'+lan+'.json'
+        //Return content of https://raw.githubusercontent.com/icra/ecam/v3/frontend/languages/lan.json
+        let url = 'https://raw.githubusercontent.com/icra/ecam/v3/frontend/languages/'+lan+'.json'
         return axios.get(url).then(resp => {
           return resp.data
+        }).catch(function (error) {
+          return {}
         })
       },
+
       tags_not_in(lan1, lan2){
         //Return the tags from lan1 not included in lan2
         let tags1 = Object.keys(lan1)
@@ -272,6 +283,8 @@
             return "Thai"
           case "en":
             return "English"
+          case "pl":
+            return "Polish"
         }
       },
       download_translations () {
