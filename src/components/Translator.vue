@@ -236,8 +236,8 @@
       },
 
       read_language_file(lan) {
-        //Return content of https://raw.githubusercontent.com/icra/ecam/v3/frontend/languages/lan.json
-        let url = 'https://raw.githubusercontent.com/icra/ecam/v3/frontend/languages/'+lan+'.json'
+        //Return content of https://raw.githubusercontent.com/icra/ecam/master/frontend/languages/lan.json
+        let url = 'https://raw.githubusercontent.com/icra/ecam/master/frontend/languages/'+lan+'.json'
         return axios.get(url).then(resp => {
           return resp.data
         }).catch(function (error) {
