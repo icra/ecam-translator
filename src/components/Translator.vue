@@ -96,7 +96,7 @@
                 v-model="item[lang]">
             </v-textarea>
             <v-textarea
-                v-if="lang === 'ar'"
+                v-else
                 dir="auto"
                 rows="1"
                 v-model="item[lang]">
@@ -155,11 +155,12 @@
     name: 'HelloWorld',
 
     data: () => ({
-      data_for_table: [],
+      data_for_table: [], //Totes les tags en tots els idiomes (tinguin o no traduccio)
+      data_to_show: [], //Info per mostrar a la taula
       langs_selected: [],
       search: '',
       contracted_table: true,
-      initial_missing_tags: [],  //Tags that need to be translated when the json files are read
+      langs_filtered: null,
 
       //For manually importing file
       langs_to_import: [
@@ -192,8 +193,8 @@
         this.read_language_file('fr'),
         this.read_language_file('th'),
         this.read_language_file('pl')
-
       ])
+
 
       let langs = {
         'ar': ar,
@@ -205,6 +206,9 @@
         'pl': pl
       }
       this.filter_table(langs)
+
+      this.langs_filtered = langs
+
     },
 
     methods: {
@@ -225,9 +229,6 @@
         this.delete_tags_not_in(th, en)
         this.delete_tags_not_in(pl, en)
 
-
-        //Tags that need to be translated
-        this.initial_missing_tags =  this.missing_tags([ar, de, es, fr, th, pl], en)
 
         //Preparing data for table
         let translation_with_lang_name = _.zip([ar, de, es, fr, th, pl],['ar', 'de', 'es', 'fr', 'th', 'pl'])
@@ -310,6 +311,9 @@
 
 
       data_to_translate(data_to_translate, master_lang) {
+
+        let _this = this
+
         //data_to_translate is [[json, 'language key'],...], and master_lang is[json, 'language key']
 
         let data_for_table = [];
@@ -366,7 +370,6 @@
               missing_tags.push(item.tag)
             }
           })
-          this.initial_missing_tags = missing_tags
 
         } catch (e) {
           this.snackbar = true
@@ -377,6 +380,42 @@
 
       }
     },
+
+    watch: {
+      langs_selected: function (val) {
+        let _this = this
+        let langs = val.map(lang => {
+          return _this.langs_filtered[lang]
+        })
+
+        let english = _this.langs_filtered.en
+        let missing_tags = _this.missing_tags(langs, english) //Cadascuna dels tags que està en anglès i no en algun dels lang_selected
+
+        let data_for_table = []
+        missing_tags.forEach(tag => {
+          let new_word = {
+            tag: tag,
+            en: english[tag]
+          }
+
+          let item =  _this.data_for_table.find(item => {
+            return item.tag === tag
+          })
+          /*
+          console.log(item)
+
+          val.forEach(lang => {
+            new_word[lang] = item[lang]
+          })*/
+
+          data_for_table.push(item)
+        })
+
+        _this.data_to_show = data_for_table
+
+      },
+    },
+
     computed: {
       headers () {
         let header = [];
@@ -411,24 +450,10 @@
         let _this = this;
         if(this.contracted_table){
 
-          let filtered_table = []
-          this.initial_missing_tags.forEach(tag => {
-            filtered_table.push(
-                this.data_for_table.find(function(item) {
-                  return item.tag == tag
-                })
-                /*this.data_for_table.find(function(item) {
-                  let n = 0;
-                  _this.langs_selected.forEach(lang_key => {
-                    if (item[lang_key] !== '') n += 1;
-                  });
-                  //console.log(item.tag);
-                  if (n < _this.langs_selected.length)
-                    return item.tag == tag
-                })*/
-            )
-          })
-          return filtered_table
+          return this.data_to_show
+
+
+
         } else{
           return this.data_for_table
         }
