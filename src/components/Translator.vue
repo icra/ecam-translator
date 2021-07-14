@@ -388,12 +388,15 @@
                 align: 'start',
                 sortable: false,
                 value: 'tag',
-                width: '25%'
+                width: '25%',
+                fixed: true,
+                class: 'tag_header'
               },
               {
                 text: 'ENGLISH',
                 value: 'en',
-                width: '25%'
+                width: '25%',
+                fixed: true
               })
         }
         this.langs_selected.forEach(lang_key => {
@@ -405,6 +408,7 @@
         return header
       },
       data_info () {
+        let _this = this;
         if(this.contracted_table){
 
           let filtered_table = []
@@ -413,6 +417,15 @@
                 this.data_for_table.find(function(item) {
                   return item.tag == tag
                 })
+                /*this.data_for_table.find(function(item) {
+                  let n = 0;
+                  _this.langs_selected.forEach(lang_key => {
+                    if (item[lang_key] !== '') n += 1;
+                  });
+                  //console.log(item.tag);
+                  if (n < _this.langs_selected.length)
+                    return item.tag == tag
+                })*/
             )
           })
           return filtered_table
@@ -441,6 +454,10 @@
     border-style: solid;
     border-color: #2b6488;
     border-radius: 10px;
+  }
+
+  .v-card{
+    overflow-wrap: anywhere!important;
   }
 
 </style>
