@@ -357,17 +357,12 @@
           this.error = false
 
           //Table data
-          let missing_tags = []
           this.data_for_table.forEach( item => {
             if(json.hasOwnProperty(item.tag)){
               item[this.import_language_model] = json[item.tag]
+              this.langs_filtered[this.import_language_model][item.tag] = json[item.tag]
             }else{
               item[this.import_language_model] = ''
-            }
-
-            let values = Object.values(item)
-            if (values.includes("")) {
-              missing_tags.push(item.tag)
             }
           })
 
